@@ -1,0 +1,67 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: sans-serif;
+    background: #c2f0f7;
+    overflow: hidden;
+  }
+  
+  #game {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(to top, #444, #87ceeb);
+    overflow: hidden;
+    border-bottom: 5px solid #444;
+  }
+  
+  #score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 18px;
+    color: #fff;
+    z-index: 2;
+  }
+  
+  #player {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 50px;
+    height: 50px;
+    background: red;
+    border-radius: 10px;
+    z-index: 2;
+  }
+  
+  #ground {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: green;
+  }
+  
+  .obstacle, .helb {
+    position: absolute;
+    bottom: 50px;
+    width: 40px;
+    height: 40px;
+    background: brown;
+    border-radius: 5px;
+  }
+  
+  .obstacle.exam {
+    background: yellow;
+  }
+  
+  .helb {
+    background: gold;
+    border: 2px solid black;
+  }
+  
