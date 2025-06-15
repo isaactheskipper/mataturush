@@ -119,6 +119,22 @@
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <button id="pauseBtn" onclick="pauseGame()" style="
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 0 0 0 10px;
+        cursor: pointer;
+        z-index: 15;
+        ">⏸</button>
+
         
         <div id="ui">
             <div>Fare: KSh <span id="score">0</span></div>
@@ -136,6 +152,25 @@
             <p>👈 👉 Swipe left/right (Mobile)</p>
             <button onclick="startGame()">Start Journey</button>
         </div>
+
+        <div id="pauseOverlay" style="
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            justify-content: center;
+            align-items: center;
+            z-index: 25;
+        ">
+            PAUSED
+        </div>
+
         
         <div id="gameOver">
             <h2>Journey Complete!</h2>
@@ -148,6 +183,9 @@
     <script>
    const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+let isPaused = false;
+
 
 // Load image assets
 const imgMatatu = new Image();
@@ -288,6 +326,10 @@ document.addEventListener('keydown', (e) => {
             player.lane++;
             player.targetX = lanes[player.lane];
         }
+        if (e.key.toLowerCase() === 'p' && gameState === 'playing') {
+    pauseGame();
+}
+
     }
 });
 
@@ -328,6 +370,17 @@ function startGame() {
     gameLoop();
 }
 
+function pauseGame() {
+    isPaused = !isPaused;
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    pauseOverlay.style.display = isPaused ? 'flex' : 'none';
+
+    if (!isPaused && gameState === 'playing') {
+        requestAnimationFrame(gameLoop); // resume loop
+    }
+}
+
+
 function resetGame() {
     score = 0;
     speed = 2;
@@ -348,10 +401,24 @@ function restartGame() {
 
 function spawnObstacle() {
     const scale = getScale();
-    if (Math.random() < 0.02 + speed * 0.001) {
-        const lane = Math.floor(Math.random() * 3);
-        const types = ['police', 'pothole', 'car'];
-        const type = types[Math.floor(Math.random() * types.length)];
+    const spawnChance = 0.02 + speed * 0.001;
+
+    if (obstacles.length >= 2) return;
+    if (Math.random() >= spawnChance) return;
+
+    const minYSpacing = 200 * scale;
+    const tooClose = obstacles.some(o => o.y < minYSpacing);
+    if (tooClose) return;
+
+    // Shuffle lanes
+    const shuffledLanes = [0, 1, 2].sort(() => Math.random() - 0.5);
+
+    // Randomly decide whether to use 1 or 2 obstacles
+    const count = Math.random() < 0.75 ? 1 : 2; // 75% chance for 1 obstacle
+    const lanesToUse = shuffledLanes.slice(0, count);
+
+    for (const lane of lanesToUse) {
+        const type = ['police', 'pothole', 'car'][Math.floor(Math.random() * 3)];
 
         obstacles.push({
             x: lanes[lane],
@@ -364,10 +431,16 @@ function spawnObstacle() {
     }
 }
 
+
 function spawnPassenger() {
     const scale = getScale();
     if (Math.random() < 0.015) {
         const lane = Math.floor(Math.random() * 3);
+
+        const closeObstacle = obstacles.find(o => o.lane === lane && o.y < 150 * scale);
+        const closePassenger = passengers.find(p => p.lane === lane && p.y < 150 * scale);
+        if (closeObstacle || closePassenger) return;
+
         passengers.push({
             x: lanes[lane],
             y: -40 * scale,
@@ -378,6 +451,7 @@ function spawnPassenger() {
         });
     }
 }
+
 
 function updateGame() {
     if (gameState !== 'playing') return;
@@ -441,12 +515,18 @@ function updateGame() {
     updateUI();
 }
 
-function checkCollision(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
+function checkCollision(obj1, obj2) {
+    const dx = (obj1.x + obj1.width / 2) - (obj2.x + obj2.width / 2);
+    const dy = (obj1.y + obj1.height / 2) - (obj2.y + obj2.height / 2);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Use 80% of smallest dimension as radius
+    const radius1 = Math.min(obj1.width, obj1.height) * 0.4;
+    const radius2 = Math.min(obj2.width, obj2.height) * 0.4;
+
+    return distance < (radius1 + radius2);
 }
+
 
 function drawGame() {
     // Clear canvas
@@ -541,12 +621,14 @@ function gameOver() {
 }
 
 function gameLoop() {
-    if (gameState === 'playing') {
+    if (gameState === 'playing' && !isPaused) {
         updateGame();
         drawGame();
         requestAnimationFrame(gameLoop);
     }
 }
+
+
 
 // Initialize UI
 updateUI();
