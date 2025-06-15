@@ -1,169 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matatu Route Runner</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        
-        #gameContainer {
-            position: relative;
-            width: min(90vw, 800px);
-            height: min(80vh, 600px);
-            max-width: 800px;
-            max-height: 600px;
-            background: linear-gradient(180deg, #87CEEB 0%, #228B22 70%);
-            border: 4px solid #8B4513;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        }
-        
-        #gameCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            background: transparent;
-        }
-        
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            font-size: clamp(14px, 2.5vw, 18px);
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            z-index: 10;
-        }
-        
-        #gameOver, #startScreen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: clamp(20px, 4vw, 30px);
-            border-radius: 10px;
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-            z-index: 20;
-        }
-        
-        #gameOver {
-            display: none;
-        }
-        
-        button {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: clamp(8px, 2vw, 12px) clamp(16px, 3vw, 24px);
-            font-size: clamp(14px, 2.5vw, 16px);
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-            transition: background 0.3s;
-        }
-        
-        @media (max-width: 480px) {
-            #gameContainer {
-                width: 95vw;
-                height: 85vh;
-                border-width: 2px;
-            }
-            
-            #ui {
-                font-size: 14px;
-                top: 5px;
-                left: 5px;
-            }
-            
-            #gameOver, #startScreen {
-                padding: 15px;
-                width: 85%;
-            }
-        }
-        
-        button:hover {
-            background: #ff5252;
-        }
-        
-        .road {
-            position: absolute;
-            width: 100%;
-            height: 20px;
-            background: repeating-linear-gradient(
-                90deg,
-                #333 0px,
-                #333 20px,
-                #666 20px,
-                #666 40px
-            );
-        }
-    </style>
-</head>
-<body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        
-        <div id="ui">
-            <div>Fare: KSh <span id="score">0</span></div>
-            <div>Speed: <span id="speed">1</span> km/h</div>
-            <div>Lives: <span id="lives">3</span> ❤️</div>
-        </div>
-        
-        <div id="startScreen">
-            <h1>🚌 MATATU ROUTE RUNNER</h1>
-            <p>Welcome aboard, conductor!</p>
-            <p>Collect passengers (🧑) and avoid obstacles:</p>
-            <p>👮 Police roadblocks • 🕳️ Potholes • 🚗 Traffic</p>
-            <p><strong>Controls:</strong></p>
-            <p>← → Arrow keys to move (Desktop)</p>
-            <p>👈 👉 Swipe left/right (Mobile)</p>
-            <button onclick="startGame()">Start Journey</button>
-        </div>
-        
-        <div id="gameOver">
-            <h2>Journey Complete!</h2>
-            <p>Total Fare Collected: KSh <span id="finalScore">0</span></p>
-            <p id="gameOverMessage"></p>
-            <button onclick="restartGame()">New Route</button>
-        </div>
-    </div>
-
-    <script>
-   const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-// Load image assets
-const imgMatatu = new Image();
-imgMatatu.src = 'images/matatu.png';
-
-const imgPolice = new Image();
-imgPolice.src = 'images/police.png';
-
-const imgCar = new Image();
-imgCar.src = 'images/car.png';
-
-const imgPothole = new Image();
-imgPothole.src = 'images/pothole.png';
-
-const imgPassenger = new Image();
-imgPassenger.src = 'images/passenger.png';
 
 // Make canvas responsive
 function resizeCanvas() {
@@ -208,24 +44,24 @@ function updateDimensions() {
     const scale = getScale();
     const centerX = canvas.width / 2;
     const laneSpacing = 100 * scale;
-
+    
     lanes = [
         centerX - laneSpacing,
         centerX,
         centerX + laneSpacing
     ];
-
+    
     player.x = lanes[player.lane];
     player.targetX = lanes[player.lane];
     player.y = canvas.height - 100 * scale;
     player.width = 80 * scale;
     player.height = 50 * scale;
-
+    
     // Initialize road lines
     roadLines = [];
     const roadLineSpacing = 50 * scale;
     const numLines = Math.ceil(canvas.height / roadLineSpacing) + 5;
-
+    
     for (let i = 0; i < numLines; i++) {
         roadLines.push({
             x: centerX - laneSpacing/2,
@@ -244,41 +80,165 @@ function updateDimensions() {
 
 updateDimensions();
 
+// Enhanced drawing functions for more convincing avatars
 function drawMatatu(x, y, width, height) {
-    if (imgMatatu.complete) {
-        ctx.drawImage(imgMatatu, x - width / 2, y - height / 2, width, height);
-    }
+    const scale = getScale();
+    ctx.save();
+    
+    // Main body
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(x - width/2, y - height/2, width, height);
+    
+    // Windows
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(x - width/2 + 5*scale, y - height/2 + 5*scale, width - 10*scale, height/3);
+    
+    // Wheels
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(x - width/3, y + height/2 - 5*scale, 8*scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + width/3, y + height/2 - 5*scale, 8*scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Matatu text
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${12*scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('MATATU', x, y);
+    
+    // Route number
+    ctx.fillStyle = '#ffff00';
+    ctx.font = `bold ${10*scale}px Arial`;
+    ctx.fillText('14', x + width/3, y - height/3);
+    
+    ctx.restore();
 }
 
 function drawPolice(x, y, width, height) {
-    if (imgPolice.complete) {
-        ctx.drawImage(imgPolice, x - width / 2, y - height / 2, width, height);
-    }
-}
-
-function drawCar(x, y, width, height) {
-    if (imgCar.complete) {
-        ctx.drawImage(imgCar, x - width / 2, y - height / 2, width, height);
-    }
+    const scale = getScale();
+    ctx.save();
+    
+    // Police car body
+    ctx.fillStyle = '#0066cc';
+    ctx.fillRect(x - width/2, y - height/2, width, height);
+    
+    // Police stripes
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - width/2, y - 5*scale, width, 10*scale);
+    
+    // Windows
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x - width/2 + 5*scale, y - height/2 + 5*scale, width - 10*scale, height/3);
+    
+    // Light bar
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x - width/4, y - height/2 - 3*scale, width/2, 6*scale);
+    
+    // Text
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${8*scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('POLICE', x, y + 5*scale);
+    
+    ctx.restore();
 }
 
 function drawPothole(x, y, width, height) {
-    if (imgPothole.complete) {
-        ctx.drawImage(imgPothole, x - width / 2, y - height / 2, width, height);
-    }
+    const scale = getScale();
+    ctx.save();
+    
+    // Pothole crater
+    ctx.fillStyle = '#2c1810';
+    ctx.beginPath();
+    ctx.ellipse(x, y, width/2, height/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cracked edges
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 3*scale;
+    ctx.beginPath();
+    ctx.ellipse(x, y, width/2 + 5*scale, height/2 + 5*scale, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Water/mud
+    ctx.fillStyle = '#654321';
+    ctx.beginPath();
+    ctx.ellipse(x, y, width/3, height/3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+function drawCar(x, y, width, height) {
+    const scale = getScale();
+    ctx.save();
+    
+    // Car body
+    ctx.fillStyle = '#666';
+    ctx.fillRect(x - width/2, y - height/2, width, height);
+    
+    // Windows
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(x - width/2 + 3*scale, y - height/2 + 3*scale, width - 6*scale, height/3);
+    
+    // Wheels
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(x - width/3, y + height/2 - 3*scale, 6*scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + width/3, y + height/2 - 3*scale, 6*scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Headlights
+    ctx.fillStyle = '#ffff99';
+    ctx.beginPath();
+    ctx.arc(x - width/2 + 2*scale, y, 3*scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + width/2 - 2*scale, y, 3*scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
 }
 
 function drawPassenger(x, y, width, height) {
-    if (imgPassenger.complete) {
-        ctx.drawImage(imgPassenger, x - width / 6, y - height / 6, width, height);
-    }
+    const scale = getScale();
+    ctx.save();
+    
+    // Body
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x - width/4, y - height/4, width/2, height/2);
+    
+    // Head
+    ctx.fillStyle = '#D2691E';
+    ctx.beginPath();
+    ctx.arc(x, y - height/3, width/4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Arms waving
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 4*scale;
+    ctx.beginPath();
+    ctx.moveTo(x - width/4, y - height/8);
+    ctx.lineTo(x - width/2, y - height/3);
+    ctx.stroke();
+    
+    // Colorful shirt
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
+    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+    ctx.fillRect(x - width/4, y - height/4, width/2, height/3);
+    
+    ctx.restore();
 }
 
 // Input handling
 const keys = {};
 document.addEventListener('keydown', (e) => {
     keys[e.key] = true;
-
+    
     if (gameState === 'playing') {
         if (e.key === 'ArrowLeft' && player.lane > 0) {
             player.lane--;
@@ -301,10 +261,10 @@ canvas.addEventListener('touchstart', (e) => {
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
     if (gameState !== 'playing') return;
-
+    
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchEndX - touchStartX;
-
+    
     if (Math.abs(diff) > 30) {
         if (diff > 0 && player.lane < 2) {
             player.lane++;
@@ -352,7 +312,7 @@ function spawnObstacle() {
         const lane = Math.floor(Math.random() * 3);
         const types = ['police', 'pothole', 'car'];
         const type = types[Math.floor(Math.random() * types.length)];
-
+        
         obstacles.push({
             x: lanes[lane],
             y: -60 * scale,
@@ -381,14 +341,14 @@ function spawnPassenger() {
 
 function updateGame() {
     if (gameState !== 'playing') return;
-
+    
     gameTime++;
-
+    
     // Smooth player movement
     if (Math.abs(player.x - player.targetX) > 2) {
         player.x += (player.targetX - player.x) * 0.2;
     }
-
+    
     // Update road lines
     roadLines.forEach(line => {
         line.y += speed * 2;
@@ -396,18 +356,18 @@ function updateGame() {
             line.y = -30;
         }
     });
-
+    
     // Spawn objects
     spawnObstacle();
     spawnPassenger();
-
+    
     // Update obstacles
     obstacles.forEach((obstacle, index) => {
         obstacle.y += speed;
         if (obstacle.y > canvas.height) {
             obstacles.splice(index, 1);
         }
-
+        
         // Collision detection
         if (checkCollision(player, obstacle)) {
             lives--;
@@ -417,14 +377,14 @@ function updateGame() {
             }
         }
     });
-
+    
     // Update passengers
     passengers.forEach((passenger, index) => {
         passenger.y += speed;
         if (passenger.y > canvas.height) {
             passengers.splice(index, 1);
         }
-
+        
         // Collection detection
         if (!passenger.collected && checkCollision(player, passenger)) {
             passenger.collected = true;
@@ -432,12 +392,12 @@ function updateGame() {
             passengers.splice(index, 1);
         }
     });
-
+    
     // Increase speed over time
     if (gameTime % 300 === 0) {
         speed += 0.5;
     }
-
+    
     updateUI();
 }
 
@@ -451,25 +411,25 @@ function checkCollision(rect1, rect2) {
 function drawGame() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
     const scale = getScale();
     const centerX = canvas.width / 2;
     const roadWidth = 300 * scale;
-
+    
     // Draw road
     ctx.fillStyle = '#333';
     ctx.fillRect(centerX - roadWidth/2, 0, roadWidth, canvas.height);
-
+    
     // Draw road lines
     ctx.fillStyle = '#fff';
     roadLines.forEach(line => {
         ctx.fillRect(line.x - line.width/2, line.y, line.width, line.height);
     });
-
+    
     // Draw player matatu
     drawMatatu(player.x, player.y, player.width, player.height);
-
-    // Draw obstacles
+    
+    // Draw obstacles with enhanced graphics
     obstacles.forEach(obstacle => {
         switch(obstacle.type) {
             case 'police':
@@ -483,31 +443,34 @@ function drawGame() {
                 break;
         }
     });
-
-    // Draw passengers
+    
+    // Draw passengers with enhanced graphics
     passengers.forEach(passenger => {
         drawPassenger(passenger.x, passenger.y, passenger.width, passenger.height);
     });
-
-    // Draw side decorations
+    
+    // Draw side decorations (trees and landscape)
     ctx.fillStyle = '#228B22';
     ctx.fillRect(0, 0, centerX - roadWidth/2, canvas.height);
     ctx.fillRect(centerX + roadWidth/2, 0, centerX - roadWidth/2, canvas.height);
-
+    
+    // Draw trees and bushes
     const treeSize = 40 * scale;
     const treeSpacing = 120 * scale;
     const numTrees = Math.ceil(canvas.height / treeSpacing) + 2;
-
+    
     for (let i = 0; i < numTrees; i++) {
         const treeY = (i * treeSpacing + gameTime * speed) % (canvas.height + treeSpacing);
-
+        
+        // Left side trees
         ctx.fillStyle = '#228B22';
         ctx.beginPath();
         ctx.arc(treeSize, treeY, treeSize/2, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#8B4513';
         ctx.fillRect(treeSize - 5*scale, treeY, 10*scale, treeSize/2);
-
+        
+        // Right side trees
         ctx.fillStyle = '#228B22';
         ctx.beginPath();
         ctx.arc(canvas.width - treeSize, treeY + 60*scale, treeSize/2, 0, Math.PI * 2);
@@ -526,16 +489,16 @@ function updateUI() {
 function gameOver() {
     gameState = 'gameOver';
     document.getElementById('finalScore').textContent = score;
-
+    
     let message = '';
     if (score >= 1000) {
-        message = 'Excellent! You\'re a matatu legend! \ud83c\udfc6';
+        message = 'Excellent! You\'re a matatu legend! 🏆';
     } else if (score >= 500) {
-        message = 'Good job, conductor! The passengers are happy! \ud83d\udc4d';
+        message = 'Good job, conductor! The passengers are happy! 👍';
     } else {
-        message = 'Keep practicing! Every journey teaches us something. \ud83c\udf1f';
+        message = 'Keep practicing! Every journey teaches us something. 🌟';
     }
-
+    
     document.getElementById('gameOverMessage').textContent = message;
     document.getElementById('gameOver').style.display = 'block';
 }
@@ -550,7 +513,3 @@ function gameLoop() {
 
 // Initialize UI
 updateUI();
-
-    </script>
-</body>
-</html>
