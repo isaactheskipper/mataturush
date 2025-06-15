@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="images/matatu.png" type="image/jpg">
+
     <title>Matatu Route Runner</title>
     <style>
         body {
@@ -121,6 +123,7 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
         <button id="pauseBtn" onclick="pauseGame()" style="
+        display: none;
         position: absolute;
         top: 0;
         right: 0;
@@ -168,7 +171,6 @@
         justify-content: center;
         align-items: center;
         z-index: 25;
-        display: flex;
     ">
         <div>PAUSED</div>
         <button onclick="pauseGame()" style="
@@ -182,6 +184,7 @@
             cursor: pointer;
         ">▶ Resume</button>
     </div>
+    
     
         <div id="gameOver">
             <h2>Journey Complete!</h2>
@@ -376,20 +379,25 @@ document.addEventListener('keyup', (e) => {
 function startGame() {
     gameState = 'playing';
     document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('pauseBtn').style.display = 'block'; // Show pause button
     resetGame();
     updateDimensions();
     gameLoop();
 }
 
 function pauseGame() {
+    if (gameState !== 'playing') return; // Only allow pause while playing
+
     isPaused = !isPaused;
+
     const pauseOverlay = document.getElementById('pauseOverlay');
     pauseOverlay.style.display = isPaused ? 'flex' : 'none';
 
-    if (!isPaused && gameState === 'playing') {
-        requestAnimationFrame(gameLoop); // resume loop
+    if (!isPaused) {
+        requestAnimationFrame(gameLoop); // resume game loop
     }
 }
+
 
 
 function resetGame() {
@@ -405,9 +413,12 @@ function resetGame() {
 }
 
 function restartGame() {
+    gameState = 'start';
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('startScreen').style.display = 'block';
-    gameState = 'start';
+    document.getElementById('pauseBtn').style.display = 'none'; // Hide pause button
+    document.getElementById('pauseOverlay').style.display = 'none'; // Hide pause overlay
+    isPaused = false;
 }
 
 function spawnObstacle() {
